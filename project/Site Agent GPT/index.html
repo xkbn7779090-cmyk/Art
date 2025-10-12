@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jan Raia - Art Gallery</title>
+    <style>
+    :root {
+        --primary-bg: #121212;
+        --secondary-bg: #1e1e1e;
+        --primary-text: #e0e0e0;
+        --secondary-text: #b3b3b3;
+        --accent-color: #ff4500;
+        --border-color: #2a2a2a;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: var(--primary-bg); color: var(--primary-text); line-height: 1.6; }
+    a { color: var(--accent-color); text-decoration: none; transition: color 0.3s; }
+    a:hover { color: white; }
+    img { max-width: 100%; height: auto; display: block; }
+    .navbar { background-color: var(--secondary-bg); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; }
+    .nav-brand { font-size: 1.5rem; font-weight: bold; color: white; }
+    .nav-links { list-style: none; display: flex; }
+    .nav-links li { margin-left: 2rem; }
+    .nav-links a { font-size: 1rem; font-weight: 500; }
+    /* Hero section */
+    .main-header {
+        text-align: center;
+        padding: 4rem 1rem;
+        /* Use a dark overlay with a high‑resolution abstract art image for visual impact */
+        background: linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)),
+            url('https://images.unsplash.com/photo-1499084732479-de2c02d45fc4?auto=format&fit=crop&w=1600&q=80')
+            no-repeat center center/cover;
+    }
+    .main-header h1 { font-size: 3.5rem; margin-bottom: 0.5rem; }
+    .main-header p { font-size: 1.2rem; color: var(--secondary-text); }
+    main { padding: 2rem 1rem; }
+    .gallery-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; width: 100%; max-width: 1600px; margin: 0 auto; }
+    .gallery-item { background-color: var(--secondary-bg); border-radius: 8px; overflow: hidden; cursor: pointer; transition: transform 0.3s ease, box-shadow 0.3s ease; border: 1px solid var(--border-color); position: relative; }
+    .gallery-item:hover { transform: scale(1.05); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 15px var(--accent-color); }
+    .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+    .gallery-item-title { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.8)); color: white; padding: 2rem 1rem 1rem; font-size: 1rem; font-weight: 500; transform: translateY(100%); transition: transform 0.3s ease; }
+    .gallery-item:hover .gallery-item-title { transform: translateY(0); }
+    .lightbox { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.95); overflow: auto; padding: 2rem; }
+    .lightbox.active { display: flex; align-items: center; justify-content: center; }
+    .lightbox-content-wrapper { display: flex; width: 100%; max-width: 1400px; margin: auto; gap: 2rem; }
+    .lightbox-image-container { flex: 2; position: relative; display: flex; align-items: center; justify-content: center; }
+    .lightbox-content { max-width: 100%; max-height: 90vh; animation: zoom 0.5s ease; }
+    .lightbox-info { flex: 1; color: var(--primary-text); padding: 1rem; max-width: 400px; }
+    .lightbox-info h2 { font-size: 2rem; margin-bottom: 1rem; color: var(--accent-color); }
+    .lightbox-info #lightbox-desc-en { font-style: italic; color: var(--secondary-text); margin-top: 1rem; }
+    .lightbox-info #lightbox-desc-ru { font-style: italic; color: var(--secondary-text); margin-top: 1rem; }
+    .lightbox-info .specs { margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1rem; }
+    .lightbox-info .specs p { margin-bottom: 0.5rem; }
+    .lightbox-info .specs strong { color: var(--secondary-text); }
+    @keyframes zoom { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .close-lightbox { position: absolute; top: -10px; right: 5px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+    .close-lightbox:hover { color: var(--accent-color); }
+    .prev, .next { cursor: pointer; position: absolute; top: 50%; width: auto; padding: 16px; margin-top: -30px; color: white; font-weight: bold; font-size: 30px; transition: 0.4s ease; border-radius: 0 3px 3px 0; user-select: none; background-color: rgba(0, 0, 0, 0.3); }
+    .next { right: 0; border-radius: 3px 0 0 3px; }
+    .prev { left: 0; }
+    .prev:hover, .next:hover { background-color: var(--accent-color); }
+    .footer { text-align: center; padding: 2rem; margin-top: 2rem; background-color: var(--secondary-bg); border-top: 1px solid var(--border-color); color: var(--secondary-text); }
+    @media (max-width: 900px) { .lightbox-content-wrapper { flex-direction: column; align-items: center; } .lightbox-info { max-width: 80vw; } }
+    </style>
+</head>
+<body>
+    
+    <nav class="navbar">
+        <a href="index.html" class="nav-brand">Jan Raia Art</a>
+        <ul class="nav-links">
+            <li><a href="index.html">Gallery</a></li>
+        </ul>
+    </nav>
+    <header class="main-header">
+        <h1>Art Gallery</h1>
+        <p>Explore the collection of abstract works by Jan Raia</p>
+    </header>
+    <main>
+        <div id="gallery-container" class="gallery-container"></div>
+        <div style="text-align: center; margin-top: 2rem;">
+            <button id="load-more-btn" class="load-more-button" style="display: none; background-color: var(--accent-color); color: white; border: none; padding: 12px 24px; font-size: 1.2rem; border-radius: 4px; cursor: pointer;">+</button>
+        </div>
+    </main>
+    <div id="lightbox" class="lightbox">
+        <span class="close-lightbox">&times;</span>
+        <div class="lightbox-content-wrapper">
+            <div class="lightbox-image-container">
+                <img class="lightbox-content" id="lightbox-img">
+                <a class="prev">&#10094;</a>
+                <a class="next">&#10095;</a>
+            </div>
+            <div id="lightbox-info" class="lightbox-info">
+                <h2 id="lightbox-title"></h2>
+                <p id="lightbox-desc-en"></p>
+                <p id="lightbox-desc-ru"></p>
+                <div class="specs">
+                    <p><strong>Size:</strong> <span id="lightbox-size"></span></p>
+                    <p><strong>Material:</strong> <span id="lightbox-material"></span></p>
+                    <p><strong>Price:</strong> <span id="lightbox-price"></span></p>
+                    <p><strong>SKU:</strong> <span id="lightbox-sku"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="footer">
+        <p>&copy; 2025 Jan Raia Art. All rights reserved.</p>
+    </footer>
+    <!-- Preload the catalog data as a global variable. -->
+    <script src="data/catalog.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const galleryContainer = document.getElementById('gallery-container');
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+        const lightboxTitle = document.getElementById('lightbox-title');
+        const lightboxDescEn = document.getElementById('lightbox-desc-en');
+        const lightboxDescRu = document.getElementById('lightbox-desc-ru');
+        const lightboxSize = document.getElementById('lightbox-size');
+        const lightboxMaterial = document.getElementById('lightbox-material');
+        const lightboxPrice = document.getElementById('lightbox-price');
+        const lightboxSku = document.getElementById('lightbox-sku');
+        const closeButton = document.querySelector('.close-lightbox');
+        const prevButton = document.querySelector('.prev');
+        const nextButton = document.querySelector('.next');
+        
+        let catalog = [];
+        let currentIndex = 0;
+
+        let displayedItems = 0;
+        const itemsToShow = 20;
+        const additionalItems = 10;
+
+        function createGallery(itemsToDisplay) {
+            // Очищаем контейнер только при первоначальной загрузке
+            if (itemsToDisplay === itemsToShow) {
+                galleryContainer.innerHTML = '';
+            }
+            
+            // Добавляем новые элементы к уже существующим
+            for (let i = displayedItems; i < itemsToDisplay && i < catalog.length; i++) {
+                const item = catalog[i];
+                const galleryItem = document.createElement('div');
+                galleryItem.classList.add('gallery-item');
+                const title = item['Title (EN)'] || item.Title;
+                
+                let mainImage = item.Cover || (Array.isArray(item.Images) && item.Images.length > 0 ? item.Images[0] : '');
+                
+                if (typeof mainImage === 'string') {
+                    mainImage = mainImage.split('\n')[0];
+                }
+
+                galleryItem.innerHTML = `<img src="${mainImage || 'https://via.placeholder.com/300'}" alt="${title}" loading="lazy"><div class="gallery-item-title">${title}</div>`;
+                galleryItem.addEventListener('click', () => openLightbox(i));
+                galleryContainer.appendChild(galleryItem);
+            }
+            displayedItems = Math.min(itemsToDisplay, catalog.length);
+        }
+
+        function openLightbox(index) {
+            currentIndex = index;
+            updateLightboxContent();
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightboxFunc() {
+            lightbox.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        function updateLightboxContent() {
+            if (currentIndex < 0) currentIndex = catalog.length - 1;
+            if (currentIndex >= catalog.length) currentIndex = 0;
+            const item = catalog[currentIndex];
+
+            let mainImage = item.Cover || (Array.isArray(item.Images) && item.Images.length > 0 ? item.Images[0] : '');
+            if (typeof mainImage === 'string') {
+                mainImage = mainImage.split('\n')[0];
+            }
+
+            const title = item['Title (EN)'] || item.Title;
+
+            lightboxImg.src = mainImage || '';
+            lightboxImg.alt = title;
+            lightboxTitle.textContent = title;
+            lightboxDescEn.textContent = item["Description (EN)"] || "";
+            lightboxDescRu.textContent = item["Description (RU)"] || "";
+            lightboxSize.textContent = item.Size || "N/A";
+            lightboxMaterial.textContent = item["Материал/техника"] || item.Material || "N/A";
+            lightboxPrice.textContent = item.Price ? (String(item.Price).startsWith('€') ? item.Price : `€${item.Price}`) : "N/A";
+            lightboxSku.textContent = item.SKU || "N/A";
+        }
+
+        function showPrevImage() {
+            currentIndex--;
+            if (currentIndex < 0) currentIndex = catalog.length - 1;
+            updateLightboxContent();
+        }
+
+        function showNextImage() {
+            currentIndex++;
+            if (currentIndex >= catalog.length) currentIndex = 0;
+            updateLightboxContent();
+        }
+
+        /*
+         * Initialize the gallery using a preloaded global `catalog` variable.
+         * The data is defined in data/catalog.js and attached to window.catalog.
+         * This avoids fetch errors when opening the site directly from the file system.
+         */
+        catalog = window.catalog || [];
+        createGallery(itemsToShow);
+        if (catalog.length > itemsToShow) {
+            document.getElementById('load-more-btn').style.display = 'inline-block';
+        }
+
+        closeButton.addEventListener('click', closeLightboxFunc);
+        prevButton.addEventListener('click', showPrevImage);
+        nextButton.addEventListener('click', showNextImage);
+        
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox || e.target.classList.contains('lightbox-content-wrapper')) {
+                closeLightboxFunc();
+            }
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            if (lightbox.classList.contains('active')) {
+                if (e.key === 'Escape') closeLightboxFunc();
+                if (e.key === 'ArrowLeft') showPrevImage();
+                if (e.key === 'ArrowRight') showNextImage();
+            }
+        });
+        
+        document.getElementById('load-more-btn').addEventListener('click', function() {
+            const newDisplayCount = displayedItems + additionalItems;
+            createGallery(newDisplayCount);
+            
+            if (newDisplayCount >= catalog.length) {
+                document.getElementById('load-more-btn').style.display = 'none';
+            }
+        });
+    });
+    </script>
+</body>
+</html>
