@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML → PDF Конвертер</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --accent: #38bdf8;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    header {
+      padding: 24px;
+      text-align: center;
+      background: linear-gradient(120deg, rgba(56,189,248,0.1), rgba(14,165,233,0.05));
+      border-bottom: 1px solid var(--border);
+    }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    p.subhead { margin: 0; color: var(--muted); }
+    main { padding: 24px; max-width: 1200px; margin: 0 auto; display: grid; gap: 16px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 6px 30px rgba(0,0,0,0.25);
+    }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    textarea {
+      width: 100%;
+      min-height: 360px;
+      background: #0b1220;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font-family: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      resize: vertical;
+    }
+    label { display: block; font-weight: 600; margin-bottom: 6px; }
+    .controls { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+    button, .file-label {
+      background: var(--accent);
+      color: #0b1220;
+      border: none;
+      padding: 10px 16px;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      box-shadow: 0 8px 22px rgba(56, 189, 248, 0.35);
+    }
+    button:hover, .file-label:hover { transform: translateY(-1px); box-shadow: 0 12px 26px rgba(56, 189, 248, 0.45); }
+    button:active, .file-label:active { transform: translateY(0); box-shadow: 0 8px 22px rgba(56, 189, 248, 0.35); }
+    .file-label { display: inline-flex; align-items: center; gap: 8px; }
+    input[type="file"] { display: none; }
+    .hint { color: var(--muted); font-size: 14px; }
+    .preview-wrapper {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      min-height: 360px;
+      background: #0b1220;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+    }
+    .status { margin-top: 8px; color: var(--muted); font-size: 14px; min-height: 20px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } textarea, .preview-wrapper { min-height: 280px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Локальный конвертер HTML → PDF</h1>
+    <p class="subhead">Вставьте HTML, загрузите файл или перетащите его, посмотрите превью и сохраните PDF без интернета.</p>
+  </header>
+  <main>
+    <section class="panel grid">
+      <div>
+        <label for="html-input">Исходный HTML</label>
+        <textarea id="html-input" spellcheck="false" placeholder="<h1>Пример</h1>\n<p>Сюда можно вставить любой HTML.</p>"></textarea>
+        <div class="controls">
+          <button id="render-btn">Обновить превью</button>
+          <label class="file-label" for="file-input">📂 Открыть HTML-файл</label>
+          <input type="file" id="file-input" accept="text/html, .html, .htm">
+          <button id="convert-btn">Сохранить как PDF</button>
+        </div>
+        <p class="hint">После нажатия «Сохранить как PDF» откроется системное окно печати: выберите там «Сохранить как PDF». Поддерживаются стили и изображения; если картинки лежат рядом с HTML, просто открывайте файл через эту форму.</p>
+        <div id="status" class="status"></div>
+      </div>
+      <div>
+        <label>Превью (то, что уйдёт в PDF)</label>
+        <div id="dropzone" class="preview-wrapper" aria-label="Область превью и drag-and-drop">
+          <iframe id="preview-frame" title="Предпросмотр HTML"></iframe>
+        </div>
+        <p class="hint">Можно перетащить HTML-файл в область превью.</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const htmlInput = document.getElementById('html-input');
+    const renderBtn = document.getElementById('render-btn');
+    const convertBtn = document.getElementById('convert-btn');
+    const fileInput = document.getElementById('file-input');
+    const previewFrame = document.getElementById('preview-frame');
+    const statusEl = document.getElementById('status');
+    const dropzone = document.getElementById('dropzone');
+
+    const setStatus = (message, isError = false) => {
+      statusEl.textContent = message;
+      statusEl.style.color = isError ? '#f87171' : 'var(--muted)';
+    };
+
+    const renderHtml = (markup) => {
+      const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+      doc.open();
+      doc.write(markup);
+      doc.close();
+      setStatus('Превью обновлено.');
+    };
+
+    const readFile = (file) => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (err) => reject(err);
+      reader.readAsText(file, 'utf-8');
+    });
+
+    renderBtn.addEventListener('click', () => {
+      const markup = htmlInput.value.trim();
+      if (!markup) {
+        setStatus('Добавьте HTML перед рендерингом.', true);
+        return;
+      }
+      renderHtml(markup);
+    });
+
+    fileInput.addEventListener('change', async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        const markup = await readFile(file);
+        htmlInput.value = markup;
+        renderHtml(markup);
+        setStatus(`Загружен файл: ${file.name}`);
+      } catch (error) {
+        setStatus('Не удалось прочитать файл.', true);
+      }
+    });
+
+    const handleDrop = async (event) => {
+      event.preventDefault();
+      const file = event.dataTransfer.files?.[0];
+      if (!file) return;
+      if (!file.type.includes('html') && !file.name.endsWith('.html') && !file.name.endsWith('.htm')) {
+        setStatus('Перетаскивайте только HTML-файлы.', true);
+        return;
+      }
+      try {
+        const markup = await readFile(file);
+        htmlInput.value = markup;
+        renderHtml(markup);
+        setStatus(`Загружен файл: ${file.name}`);
+      } catch (error) {
+        setStatus('Не удалось прочитать файл.', true);
+      }
+    };
+
+    dropzone.addEventListener('dragover', (event) => event.preventDefault());
+    dropzone.addEventListener('drop', handleDrop);
+
+    convertBtn.addEventListener('click', async () => {
+      const frameWindow = previewFrame.contentWindow;
+      const frameDocument = previewFrame.contentDocument || frameWindow?.document;
+      if (!frameDocument || !frameDocument.documentElement.innerHTML.trim()) {
+        setStatus('Нечего конвертировать: обновите превью или загрузите HTML.', true);
+        return;
+      }
+
+      setStatus('Открываем системное окно печати. Выберите «Сохранить как PDF».');
+      await new Promise((resolve) => setTimeout(resolve));
+
+      try {
+        frameWindow?.focus();
+        frameWindow?.print();
+      } catch (error) {
+        console.error(error);
+        setStatus('Не удалось отправить документ в печать.', true);
+      }
+    });
+
+    // Автозаполнение примером для удобства
+    const defaultMarkup = `<section style="font-family: Inter, sans-serif; padding: 32px; max-width: 720px; margin: auto; color: #0f172a;">\n  <h1 style="color: #0ea5e9;">HTML → PDF</h1>\n  <p>Этот пример покажет, как будет выглядеть PDF.</p>\n  <ul>\n    <li>Поддерживаются базовые стили.</li>\n    <li>Можно использовать локальные изображения.</li>\n    <li>Размер PDF подбирается под контент.</li>\n  </ul>\n</section>`;
+    htmlInput.value = defaultMarkup;
+    renderHtml(defaultMarkup);
+  </script>
+</body>
+</html>
